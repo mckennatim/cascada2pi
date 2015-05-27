@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+	<title>{{ title }}</title>
+	<script type="text/javascript" src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+	<script type="text/javascript" charset="utf-8">
+		$(document).ready(function(){
+			namespace = '/test'; 
+			var socket = io.connect('http://10.0.1.154:8087' + namespace);
+			socket.on('connect', function() {
+				socket.emit('my event', {data: 'I\'m connected!'});
+			});
+			socket.on('my response', function(msg) {
+				$('#log').append('<br>Received #' + msg.count + ': ' + msg.data);
+			});
+		});
+	</script>      
+</head>
+
+<body>
+	<h1>Hello, World!</h1>
+	<h2>The date and time on the server is: {{ time }}</h2>
+    <h1>Flask-SocketIO Test</h1>
+        <h2>Receive:</h2>
+    <div id="log"></div>	
+</body>
+</html>
