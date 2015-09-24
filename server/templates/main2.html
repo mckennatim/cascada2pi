@@ -16,7 +16,7 @@
 			console.log('leave io')
 		}		
 		function connect(){
-			socket = io.connect('http://10.0.1.154:8087' + namespace, {reconnect:false});
+			socket = io.connect('http://10.0.1.154:8088' + namespace, {reconnect:false});
 			socket.on('connect', function() {
 				socket.emit('my event', {data: 'I\'m connected!'});
 			});
@@ -27,7 +27,7 @@
 		}		
 		$(document).ready(function(){
 			namespace = '/test'; 
-			socket = io.connect('http://10.0.1.154:8087' + namespace, {reconnect:false});
+			socket = io.connect('http://10.0.1.154:8088' + namespace, {reconnect:false});
 			socket.on('connect', function() {
 				socket.emit('my event', {data: 'I\'m connected!'});
 			});
@@ -41,7 +41,7 @@
 </head>
 
 <body>
-	<h1>Hello, World!</h1>
+	<h1>Hello main2, World!</h1>
 	<button onclick="killio()">kill io</button>
 	<button onclick="leave()">leave</button>
 	<button onclick="connect()">connect</button>

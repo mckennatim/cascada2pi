@@ -43,7 +43,7 @@ status['bridge'] = {'state': 'off', 'tleft': 0, 'nexton': 0}
 
 
 locs= {'pond':27, 'center': 22, 'bridge':17}
-st={'on':1, 'off': 0}
+st={'on':1, 'off': 0, 'timer':1}
 stof =['off', 'on']
 
 timrs={}

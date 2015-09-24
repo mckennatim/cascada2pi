@@ -14,6 +14,8 @@ import logging
 import json
 logging.basicConfig()
 
+print 'dog is Uli'
+
 app = Flask(__name__)
 app.debug = True
 app.config['SECRET_KEY'] = 'mabibi eats birds'
@@ -49,9 +51,9 @@ GPIO.setup(27, GPIO.OUT)
 
 
 status ={}
-status['pond'] = {'state': 'off', 'tleft': 0, 'nexton': 0}
-status['center'] = {'state': 'off', 'tleft': 0, 'nexton': 0}
-status['bridge'] = {'state': 'off', 'tleft': 0, 'nexton': 0}
+status['pond'] = {'spot': 'center', 'state': 'off', 'tleft': 0, 'nexton': 9}
+status['center'] = {'spot': 'center', 'state': 'off', 'tleft': 0, 'nexton': 0}
+status['bridge'] = {'spot': 'bridge', 'state': 'off', 'tleft': 0, 'nexton': 0}
 
 
 
@@ -75,7 +77,8 @@ def background_thread():
 		count += 1
 		#data2 = jsonify(dog=str(timrs['pond'].tleft) + " my dog has fow")
 		#data2 = jsonify(dog=str(123) + " my dog has fow")
-		data2 = json.dumps({'pond': {'tleft': timrs['pond'].tleft, 'state': stof[GPIO.input(locs['pond'])]}, 'center': {'tleft': timrs['center'].tleft, 'state': stof[GPIO.input(locs['center'])]}, 'bridge': {'tleft': timrs['bridge'].tleft, 'state': stof[GPIO.input(locs['bridge'])]}})#str(timrs['pond'].tleft) + " my dog has fow"
+		data2 = json.dumps({'pond': {'spot': 'pond', 'tleft': timrs['pond'].tleft, 'state': det_state('pond')}, 'center': {'spot': 'center', 'tleft': timrs['center'].tleft, 'state': det_state('center')}, 'bridge': {'spot': 'bridge', 'tleft': timrs['bridge'].tleft, 'state': det_state('bridge')}})
+		#str(timrs['pond'].tleft) + " my dog has fow"
 		data = timrs['pond'].tleft
 		#data = 'my dog has fleas'
 		print data2
@@ -87,6 +90,22 @@ def background_thread():
 if thread is None:
 	thread = Thread(target=background_thread)
 	thread.start()
+
+def det_state(spot):
+	if timrs[spot].tleft > -1:
+		return 'timer'
+	else: 
+		return stof[GPIO.input(locs[spot])]	
+
+def upd_status():
+	status['pond']['tleft']= timrs['pond'].tleft
+	status['center']['tleft']= timrs['center'].tleft
+	status['bridge']['tleft']= timrs['bridge'].tleft
+
+	status['pond']['state'] = det_state('pond')#stof[GPIO.input(locs['pond'])]
+	status['bridge']['state'] = det_state('bridge')#stof[GPIO.input(locs['bridge'])]
+	status['center']['state'] = det_state('center')#stof[GPIO.input(locs['center'])]
+	return status	
 
 @app.route("/")
 def hello():
@@ -106,22 +125,31 @@ def ctrlWater():
 	til = request.args.get('til')
 	print til
 	if til:
-		timrs[spot]= RelayTimer(4,int(til),locs[spot])   
+		timrs[spot]= RelayTimer(60,int(til),locs[spot])   
 	else: #shut down timer
 		timrs[spot]= RelayTimer(1,-1,locs[spot])  	
 	print locs[spot]
 
-	GPIO.output(locs[spot], st[state])
-	status[spot]= {'tleft':til, 'state':state, 'nexton':0}
-	status['pond']['tleft']= timrs['pond'].tleft
-	status['center']['tleft']= timrs['center'].tleft
-	status['bridge']['tleft']= timrs['bridge'].tleft
+	if state != 'timer':
+		GPIO.output(locs[spot], st[state])
 
-	status['pond']['state'] = stof[GPIO.input(locs['pond'])]
-	status['bridge']['state'] = stof[GPIO.input(locs['bridge'])]
-	status['center']['state'] = stof[GPIO.input(locs['center'])]
+	#spot replaces location with  
+	status[spot]= {'spot': spot, 'tleft':til, 'state':state, 'nexton':0}
 
-	return jsonify(spot=spot, state=state, til=til, status=status)
+
+	return jsonify(spot=spot, state=state, til=til, status=upd_status())
+
+@app.route("/report/")
+def report():
+	# status['pond']['tleft']= timrs['pond'].tleft
+	# status['center']['tleft']= timrs['center'].tleft
+	# status['bridge']['tleft']= timrs['bridge'].tleft
+
+	# status['pond']['state'] = stof[GPIO.input(locs['pond'])]
+	# status['bridge']['state'] = stof[GPIO.input(locs['bridge'])]
+	# status['center']['state'] = stof[GPIO.input(locs['center'])]
+
+	return jsonify(spots=upd_status())	
 
 @app.route('/shutdown')
 def shutdown():
@@ -144,6 +172,7 @@ def test_broadcast_message(message):
 
 @socketio.on('join', namespace='/test')
 def join(message):
+	print('joined')
 	join_room(message['room'])
 	session['receive_count'] = session.get('receive_count', 0) + 1
 	emit('my response',
@@ -153,6 +182,8 @@ def join(message):
 
 @socketio.on('leave', namespace='/test')
 def leave(message):
+	print('leaving')
+	print(message)
 	leave_room(message['room'])
 	session['receive_count'] = session.get('receive_count', 0) + 1
 	emit('my response',
@@ -186,13 +217,14 @@ def disconnect_request():
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
+	print('client Connected')
 	emit('my response', {'data': 'Connected', 'count': 0})
 
 
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
 	print('Client disconnected')    
-
+	disconnect()
 
 if __name__ == "__main__":
 	socketio.run(app, host='0.0.0.0', port=8087)
